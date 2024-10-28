@@ -10,7 +10,7 @@ const Users = (props) => {
     <div className="user-content">
       <SideBar access="true" tab="users" />
       <div className="user-main-content">
-        <UserTable username={props.username} />
+        <UserTable username={props.userInfo.username} />
       </div>
     </div>
   );

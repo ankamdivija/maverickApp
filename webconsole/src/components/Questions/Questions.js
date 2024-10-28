@@ -1,15 +1,16 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import NavBar from '../Utils/NavBar';
+import React, { useState, useEffect } from 'react';
 import SideBar from '../Utils/SideBar';
-import { FaSearch } from 'react-icons/fa';
 import Alert from '@mui/material/Alert';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import './Questions.css';
 import DialogComponent from '../Utils/Dialog';
-import { FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
+import { Button, FormControl, InputLabel, MenuItem, Paper, Select, TextField } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { useLocation } from 'react-router-dom';
+import SearchBar from '../Utils/SearchBar';
+import { MdDeleteOutline } from 'react-icons/md';
+import NewQuestion from './NewQuestion';
+import './Questions.css';
 
 const Questions = (props) => {
     const location = useLocation();
@@ -20,34 +21,22 @@ const Questions = (props) => {
     const [allDiseases, setAllDiseases] = useState([]);
     const [editQuestion, setEditQuestion] = useState(null);
     const [editedValue, setEditedValue] = useState("");
-    const inputRef = useRef(null);
-
+    const [newQuestion, setNewQuestion] = useState({});
+    const [newQuesAnswerCount, setNewQuesAnswerCount] = useState(0)
     const [dialogDelete, setDialogDelete] = useState({ open: false, message: '' });
-
-    const [newUser, setNewUser] = useState(null);
-    const [popupVisible, setPopupVisible] = useState(null);
-
+    const [dialogView, setDialogView] = useState(null);
     const [viewOptions, setViewOptions] = useState(null);
-
-    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-    const [dialog, setDialog] = useState({ open: false, message: '' });
+    // const [dialog, setDialog] = useState({ open: false, message: '' });
     const [dialogQues, setDialogQues] = useState({ open: false, message: '' })
     const [dialogDisease, setDialogDisease] = useState({ open: false, message: '' })
     const [alert, setAlert] = useState({ show: false, message: '', type: '' });
-    const viewLinkRefs = useRef([]); // To store refs of each "View" link
-
-    const BarStyle = { width: "20rem", background: "white", border: "1px solid", margin: "0.5rem", padding: "0.5rem" };
-
+    const [answerComponents, setAnswerComponents] = useState({})
     useEffect(() => {
         const pathSplits = location.pathname.split('/')
         const questionType = pathSplits[pathSplits.length - 1]
         getAllQuestionsAndDiseases(questionType);
     }, [location]);
 
-    const rows = questions.map(q => {
-        q.id = q.question_id;
-        return q;
-    });
 
     const getDiseases = (data, questionType) => {
         const diseaseMap = new Map();
@@ -121,7 +110,6 @@ const Questions = (props) => {
             if (response.ok) {
                 const updatedQuestions = questions.filter(question => question.question_id !== id);
                 setQuestions(updatedQuestions);
-                setNewUser("")
                 setAlert({ show: true, message: "Question deleted successfully!", type: "success" });
             } else {
                 setAlert({ show: true, message: "Failed to delete question", type: "error" });
@@ -158,16 +146,8 @@ const Questions = (props) => {
         }
     };
 
-    // Function to add a new user/question
-    const addUser = () => {
-        const newId = questions.length + 1;
-        const newQuestion = { id: newId, description: "", type: "Dr. David" };
-        setQuestions([...questions, newQuestion]);
-        alert("User added successfully!");
-    };
-
     const handleView = (question) => {
-        setPopupVisible(question);
+        setDialogView(question);
         const initialWeights = {};
         question.diseases.forEach(disease => {
             disease.options.forEach(option => {
@@ -178,9 +158,10 @@ const Questions = (props) => {
         setViewOptions(initialWeights)
     };
 
-    const handleAdd = () => {
-        setDialog({ open: true, message: `Add possible answers to "${editedValue}" question`, data: 'addOptions' });
-    };
+    // const handleAdd = () => {
+    //     setDialog({ open: true, message: `Add possible answers to "${editedValue}" question`, data: 'addOptions' });
+    // };
+
     const updateWeight = (diseaseId, optionId, newWeight) => {
         setViewOptions(prevWeights => ({
             ...prevWeights,
@@ -188,7 +169,37 @@ const Questions = (props) => {
         }));
     };
     const handleCancelWeights = () => {
-        setPopupVisible(null);
+        setDialogView(null);
+        setAnswerComponents({});
+    }
+    const handleCancelAddQues = () => {
+        setDialogQues({ open: false, message: '' });
+        setNewQuestion(null);
+        setAnswerComponents({});
+    }
+    const handleAddQuestion = async () => {
+        console.log({ ...newQuestion, status: 'active' });
+        try {
+            const response = await fetch(`http://localhost:3030/addQuestion/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newQuestion)
+            });
+
+            if (response.ok) {
+                setAlert({ show: true, message: "Question added successfully!", type: "success" });
+            } else {
+                setAlert({ show: true, message: "Failed to add questions", type: "error" });
+            }
+        } catch (error) {
+            console.error("Error adding questions:", error);
+            setAlert({ show: true, message: "Error in adding questions", type: "error" });
+        }
+        setDialogQues({ open: false, message: '' });
+        setAnswerComponents([])
+        setNewQuestion(null);
     }
     const saveWeightChanges = async (question) => {
         // api
@@ -218,16 +229,119 @@ const Questions = (props) => {
             console.error("Error revoking user:", error);
             setAlert({ show: true, message: "Error in update answers", type: "error" });
         }
-        // diseases.forEach(disease => {
-        //     disease.options.forEach(option => {
-        //         const key = `${disease.disease_id}-${option.options_id}`;
-        //         if (tempWeights[key] !== undefined) {
-        //             option.weightage = tempWeights[key];
-        //         }
-        //     });
-        // });
-        setPopupVisible(null); // Close the dialog after saving
+        setDialogView(null); // Close the dialog after saving
     };
+    // const handleOnClickNewAnswer = (e) => {
+    //     e.preventDefault();
+    //     console.log(e, answerComponents)
+    //     setAnswerComponents(prevComponents => [
+    //         ...prevComponents,
+    //         {
+    //             id: newQuesAnswerCount,
+    //             disease_id: e.target.name,
+    //             component: (
+    //                 <div style={{ display: 'flex', alignItems: 'center', marginLeft: '1rem' }} key={newQuesAnswerCount}>
+    //                     <div style={{ textAlign: 'left', width: '50%' }}>
+    //                         <input
+    //                             className="form-control"
+    //                             type="textarea"
+    //                             id={`answer-${newQuesAnswerCount}`}
+    //                             name={newQuesAnswerCount.toString()}
+    //                             onChange={handleNewQuesInput}
+    //                         />
+    //                     </div>
+    //                     <span style={{ margin: '0 1rem' }}>:</span>
+    //                     <div style={{ textAlign: 'left', width: '50%' }}>
+    //                         <input
+    //                             className='answers-input'
+    //                             type="number"
+    //                             id={`answer-${newQuesAnswerCount}-weight`}
+    //                             name={`answer-${newQuesAnswerCount}-weight`}
+    //                             onChange={handleNewQuesInput}
+    //                         />
+    //                     </div>
+    //                     <Button variant="contained" size="medium" sx={{ marginLeft: 3, fontSize: "large" }} onClick={() => handleCancelNewAnswer(newQuesAnswerCount)}>
+    //                         <MdDeleteOutline />
+    //                     </Button>
+    //                 </div>
+    //             )
+    //         }
+    //     ]);
+    // };
+
+    // const handleCancelNewAnswer = (id) => {
+    //     setNewQuesAnswerCount(prevCount => prevCount - 1);
+    //     setAnswerComponents(prevComponents => prevComponents.filter(component => component.id !== id));
+    // };
+
+    const handleOnClickNewAnswer = (e, diseaseId) => {
+        e.preventDefault();
+        const id = Date.now();
+        console.log(diseaseId, answerComponents)
+        setAnswerComponents(prevComponents => ({
+            ...prevComponents,
+            [diseaseId]: [
+                ...(prevComponents[diseaseId] || []),
+                {
+                    id: id, // Unique ID for each answer
+                    component: (
+                        <div style={{ display: 'flex', alignItems: 'center', marginLeft: '1rem' }} key={Date.now()}>
+                            <div style={{ textAlign: 'left', width: '50%' }}>
+                                <label style={{ marginLeft: '0.5rem' }} htmlFor={`answer-${diseaseId}`}>
+                                    New Answer
+                                </label>
+                                <input
+                                    className="form-control"
+                                    type="textarea"
+                                    id={`answer-${diseaseId}`}
+                                    name={`answer-${diseaseId}`}
+                                    onChange={(e) => handleNewQuesInput(e, diseaseId)}
+                                />
+                            </div>
+                            <span style={{ margin: '0 1rem' }}>:</span>
+                            <div style={{ textAlign: 'left', width: '50%' }}>
+                                <label style={{ marginLeft: '0.5rem' }} htmlFor={`answer-${diseaseId}-weight`}>
+                                    Weight
+                                </label>
+                                <input
+                                    className='answers-input'
+                                    type="number"
+                                    id={`answer-${diseaseId}-weight`}
+                                />
+                            </div>
+                            <Button variant="contained" size="medium" sx={{ marginLeft: 3, fontSize: "large" }} onClick={() => handleCancelNewAnswer(diseaseId, id)}>
+                                <MdDeleteOutline />
+                            </Button>
+                        </div>
+                    )
+                }
+            ]
+        }));
+    };
+
+    const handleCancelNewAnswer = (diseaseId, answerId) => {
+        console.log(diseaseId, answerId, answerComponents)
+        setAnswerComponents(prevComponents => ({
+            ...prevComponents,
+            [diseaseId]: prevComponents[diseaseId].filter(answer => answer.id !== answerId)
+        }));
+    };
+    const handleNewQuesInput = (e) => {
+        switch (e.target.name) {
+            case "questionDesc":
+                setNewQuestion({ ...newQuestion, question: e.target.value })
+                break;
+            case "diseaseName":
+                // change logic to disease id
+                setNewQuestion({ ...newQuestion, diseases: e.target.value })
+                break;
+            case "questionType":
+                setNewQuestion({ ...newQuestion, question_type: e.target.value })
+                break;
+        }
+
+        console.log(e, newQuestion)
+    }
     const columns: GridColDef[] = [
         {
             field: 'question',
@@ -253,6 +367,9 @@ const Questions = (props) => {
             valueGetter: (value, row) => {
                 const diseaseNames = row.diseases.map(disease => disease.disease_name);
                 return diseaseNames.join(', ');
+            },
+            renderCell: (row) => {
+                return row.row.diseases.map(disease => disease.disease_name).join(', ');
             }
         },
         {
@@ -273,6 +390,10 @@ const Questions = (props) => {
         { field: 'delete', headerName: 'Delete', flex: 0.3, renderCell: (question) => <a style={{ color: "red", cursor: "pointer" }} onClick={() => handleDelete(question.row)}>Delete</a> },
     ];
 
+    const rows = questions.map(q => {
+        q.id = q.question_id;
+        return q;
+    });
     return (
         <div className="user-content">
             <SideBar access="true" tab={props.tab} />
@@ -293,32 +414,26 @@ const Questions = (props) => {
                             <MenuItem key="all" value="ALL">
                                 <em>All</em>
                             </MenuItem>
-                            {allDiseases.map(disease => <MenuItem key={disease.disease_id} value={disease.disease_id}>{disease.disease_name}</MenuItem>)}
+                            {/* disease change to disease id */}
+                            {allDiseases.map(disease => <MenuItem key={disease.disease_id} value={disease.disease_name}>{disease.disease_name}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <span className='question-search'>
-
-                        <button className="menu-btn" onClick={() => setDialogQues({ open: true, message: `Add Question` })}>Add Question</button>
-                        <button className="menu-btn" onClick={() => setDialogDisease({ open: true, message: `Add Disease` })}>Add Disease</button>
-                        <FaSearch />
-                        <input
-                            style={BarStyle}
-                            key="search-bar"
-                            placeholder={"search with keywords"}
-                            onChange={handleSearch}
-                        />
+                        <button className="menu-btn" onClick={() => setDialogQues({ open: true, message: `Add a new Question` })}>Add Question</button>
+                        {!props.isDaily && <button className="menu-btn" onClick={() => setDialogDisease({ open: true, message: `Add Disease` })}>Add Disease</button>}
+                        <SearchBar onChange={handleSearch} />
                     </span>
                 </div>
-                {popupVisible && (
-                    <DialogComponent openDialog={popupVisible !== null} alertMessage={`Answers for Question "${popupVisible.question}" with different diseases`} data={popupVisible} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
-                        <div className="popup-content">
-                            {popupVisible.diseases.map(disease => (
+                {dialogView && (
+                    <DialogComponent openDialog={dialogView !== null} alertMessage={`Answers for Question "${dialogView.question}" with different diseases`} data={dialogView} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
+                        {/* <div className="popup-content">
+                            {dialogView.diseases.map(disease => (
                                 <div key={disease.disease_id} className='disease-section'>
-                                    <h3>{disease.disease_name} <button >Add Answer</button></h3>
+                                    <h3>{disease.disease_name} <button name={disease.disease_id} onClick={handleOnClickNewAnswer}>Add Answer</button></h3>
                                     {disease.options.map(option => (
                                         <div key={option.options_id} className='question-filters'>
-                                            <label className='full-width'>
-                                                {option.option_text.toUpperCase()}:
+                                            <label className='full-width' style={{ display: 'flex' }}>
+                                                <div style={{ margin: '1rem', width: '60%' }}>{option.option_text.toUpperCase()} :</div>
                                                 <input
                                                     className='answers-input'
                                                     type="number"
@@ -328,43 +443,52 @@ const Questions = (props) => {
                                             </label>
                                         </div>
                                     ))}
+                                    <div>
+                                        {answerComponents.filter(comp => comp.disease_id !== disease.disease_id).map(comp => comp.component)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div> */}
+                        <div className="popup-content">
+                            {dialogView.diseases.map(disease => (
+                                <div key={disease.disease_id} className='disease-section'>
+                                    <h3>{disease.disease_name}
+                                        <button name={disease.disease_id} onClick={(e) => handleOnClickNewAnswer(e, disease.disease_id)}>Add Answer</button>
+                                    </h3>
+                                    {disease.options.map(option => (
+                                        <div key={option.options_id} className='question-filters'>
+                                            <label className='full-width' style={{ display: 'flex' }}>
+                                                <div style={{ margin: '1rem', width: '60%' }}>{option.option_text.toUpperCase()} :</div>
+                                                <input
+                                                    className='answers-input'
+                                                    type="number"
+                                                    value={viewOptions[`${disease.disease_id}-${option.options_id}`]}
+                                                    onChange={(e) => updateWeight(disease.disease_id, option.options_id, parseInt(e.target.value))}
+                                                />
+                                            </label>
+                                        </div>
+                                    ))}
+                                    <div>
+                                        {(answerComponents[disease.disease_id] || []).map(answer => (
+                                            <React.Fragment key={answer.id}>
+                                                {answer.component}
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
                                 </div>
                             ))}
                         </div>
+
                     </DialogComponent>
                 )}
                 {dialogQues.open && (
-                    <DialogComponent openDialog={dialogQues.open} alertMessage={`Add a new Question`} data={dialogQues} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
-                        <div className="popup-content">
-                            <form className='profile-form'>
-                                <div style={{ textAlign: "left" }}>
-                                    <label htmlFor="resourceName">Question</label>
-                                    <input className="form-control" type="text" id="resourceName" name="resourceName" />
-                                </div>
-                                <div style={{ textAlign: "left" }}>
-                                    <FormControl variant="standard" sx={{ m: 0, minWidth: 550 }}>
-                                        <InputLabel id="demo-simple-select-standard-label">Disease</InputLabel>
-                                        <Select
-                                            labelId="demo-simple-select-standard-label"
-                                            id="demo-simple-select-standard"
-                                            label="Age"
-                                        >
-                                            <MenuItem key="all" value="ALL">
-                                                <em>All</em>
-                                            </MenuItem>
-                                            {allDiseases.map(disease => <MenuItem key={disease.disease_id} value={disease.disease_id}>{disease.disease_name}</MenuItem>)}
-                                        </Select>
-                                    </FormControl>
-                                </div>
-                                <div style={{ textAlign: "left" }}>
-                                    <button >Add Answer</button>
-                                </div>
-                            </form>
-                        </div>
+                    <DialogComponent openDialog={dialogQues.open} alertMessage={dialogQues.message} data={dialogQues} no={"Cancel"} yes={"Add"} action={handleAddQuestion} cancel={handleCancelAddQues}>
+                        <NewQuestion allDiseases={allDiseases} newQuestion={newQuestion} handleNewQuesInput={handleNewQuesInput}
+                            handleOnClickNewAnswer={(e, disease_id) => handleOnClickNewAnswer(e, disease_id)} answerComponents={answerComponents}></NewQuestion>
                     </DialogComponent>
                 )}
                 {dialogDisease.open && (
-                    <DialogComponent openDialog={dialogDisease} alertMessage={`Add a new diseases`} data={popupVisible} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
+                    <DialogComponent openDialog={dialogDisease} alertMessage={`Add a new diseases`} data={dialogView} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
                         <div className="popup-content">
                             <form className='profile-form'>
                                 <div style={{ textAlign: "left" }}>
@@ -384,79 +508,6 @@ const Questions = (props) => {
                         sx={{ border: 0 }}
                     />
                 </Paper>
-                <table style={{ backgroundColor: "white" }}>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Questions</th>
-                            {props.isDaily ? null : <th>Diesease</th>}
-                            <th>Answers</th>
-                            <th>Action</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {questions.map((question, index) => (
-                            <tr key={question.question_id}>
-                                <td>{question.question_id}</td>
-                                <td className='question-column'>
-                                    {editQuestion && editQuestion.question_id === question.question_id ?
-                                        <span className='edit-question'>
-                                            <input className='input-question' type="text" id="question"
-                                                name="question" value={editedValue}
-                                                onChange={handleInputChange} />
-                                            <button type="cancel" className="question-btn-cancel" onClick={() => setEditQuestion(null)}><CloseIcon fontSize="inherit" /></button>
-                                            <button type="submit" className="question-btn-submit" onClick={saveEdit}><CheckIcon fontSize="inherit" /></button>
-                                        </span> : question.question}</td>
-                                {props.isDaily ? null : <td>{question.disease}</td>}
-                                <td>
-                                    <a
-                                        ref={(el) => (viewLinkRefs.current[index] = el)}
-                                        style={{ textDecoration: "underline", cursor: "pointer" }}
-                                        onClick={() => handleView(question)}
-                                    >
-                                        View
-                                    </a>
-                                    {popupVisible === question.question_id && (
-                                        <div className="popup-overlay"
-                                            style={{
-                                                position: "absolute",
-                                                top: popupPosition.top + "px",
-                                                left: popupPosition.left + "px",
-                                            }}>
-                                            <div className="popup-content">
-                                                {Object.entries(viewOptions).map(([option, weight]) => {
-                                                    return (<div className='question-filters'>
-                                                        <label>{option}: {weight}</label>
-                                                        <button onClick={() => updateWeight(question, option, true)}>+</button>
-                                                        <button onClick={() => updateWeight(question, option, false)}>-</button>
-                                                    </div>)
-                                                })}
-
-                                                <button className='question-dropdown'>Add Answer</button>
-                                                <span className='question-filters'>
-                                                    <button onClick={() => setPopupVisible(null)}><CloseIcon fontSize="inherit" /></button>
-                                                    <button onClick={() => setPopupVisible(null)}><CheckIcon fontSize="inherit" /></button>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </td>
-                                <td><a style={{ color: "green", cursor: "pointer" }} onClick={() => handleEdit(question)}>Edit</a></td>
-                                <td><a style={{ color: "red", cursor: "pointer" }} onClick={() => handleDelete(question)}>Delete</a></td>
-                            </tr>
-                        ))}
-                        <tr>
-                            <td>{questions.length + 1}</td>
-                            <td><input value={newUser} placeholder="Add Question" onChange={(e) => setNewUser(e.target.value)} /></td>
-                            {props.isDaily ? null : <td><input value={''} placeholder="Add Disease" onChange={(e) => setNewUser(e.target.value)} /></td>}
-                            <td><button className="add-btn"
-                                onClick={handleAdd}>Add</button></td>
-                            {dialog.open && <DialogComponent openDialog={dialog.open} alertMessage={dialog.message} data={dialog.data} action={deleteQuestion} cancel={handleCancelDelete} />}
-                            <td><button className="add-btn" onClick={addUser}>Save</button></td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
     );

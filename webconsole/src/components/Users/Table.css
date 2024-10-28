@@ -28,6 +28,14 @@ table td {
   background-color: #f44336;
 }
 
+.revoke-btn:hover {
+  background-color: #f79c95;
+}
+
+.revoke-btn:disabled {
+  background-color: #afacac;
+}
+
 .add-btn {
   background-color: #2196f3;
 }

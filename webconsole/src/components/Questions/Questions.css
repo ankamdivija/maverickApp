@@ -8,6 +8,7 @@
 
 .question-search {
     margin-left: auto;
+    display: flex;
 }
 
 .disease-section {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
 import Login from './components/Login/Login';
@@ -15,11 +15,16 @@ function App() {
     console.log("App.js", userInfo)
     setUserInfo(userInfo);
   }
+
+  useEffect(() => {
+    updateUserInfo(userInfo);
+  }, []);
+
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<Login updateUser={updateUserInfo} />} />
+          <Route path="/" element={<Login updateUserInfo={updateUserInfo} />} />
           <Route path="/dashboard/" element={<Dashboard userInfo={userInfo} />} >
             <Route path="users" element={<Users userInfo={userInfo} />} />
             <Route path="profile" element={<Profile userInfo={userInfo} />} />
