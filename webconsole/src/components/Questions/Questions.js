@@ -11,6 +11,7 @@ import SearchBar from '../Utils/SearchBar';
 import { MdDeleteOutline } from 'react-icons/md';
 import NewQuestion from './NewQuestion';
 import './Questions.css';
+import EditQuestion from './EditQuestion';
 
 const Questions = (props) => {
     const location = useLocation();
@@ -22,13 +23,12 @@ const Questions = (props) => {
     const [editQuestion, setEditQuestion] = useState(null);
     const [editedValue, setEditedValue] = useState("");
     const [newQuestion, setNewQuestion] = useState({});
-    const [newQuesAnswerCount, setNewQuesAnswerCount] = useState(0)
     const [dialogDelete, setDialogDelete] = useState({ open: false, message: '' });
     const [dialogView, setDialogView] = useState(null);
     const [viewOptions, setViewOptions] = useState(null);
-    // const [dialog, setDialog] = useState({ open: false, message: '' });
     const [dialogQues, setDialogQues] = useState({ open: false, message: '' })
     const [dialogDisease, setDialogDisease] = useState({ open: false, message: '' })
+    const [dialogEditQues, setDialogEditQues] = useState({ open: false, message: '' })
     const [alert, setAlert] = useState({ show: false, message: '', type: '' });
     const [answerComponents, setAnswerComponents] = useState({})
     useEffect(() => {
@@ -59,7 +59,7 @@ const Questions = (props) => {
 
     const getAllQuestionsAndDiseases = async (questionsType) => {
         try {
-            const response = await fetch('http://localhost:3030/getQuestionsWithDetails', {
+            const response = await fetch('http://52.54.249.139:3030/getQuestionsWithDetails', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ const Questions = (props) => {
     }
     const deleteQuestion = async (id) => {
         try {
-            const response = await fetch(`http://localhost:3030/deleteQuestion/${id}`, {
+            const response = await fetch(`http://52.54.249.139:3030/deleteQuestion/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -127,12 +127,38 @@ const Questions = (props) => {
     const handleCancelDelete = () => {
         setDialogDelete({ open: false, message: "" });
     };
+    const handleCancelEditQues = () => {
+        setDialogEditQues({ open: false, message: "", data: null });
+    }
 
-    const handleEdit = (question) => {
-        setEditQuestion(question);
-        setEditedValue(question.question);
+    const handleOnClickEditQues = (question) => {
+        // setEditQuestion(question);
+        // setEditedValue(question.question);
+        setDialogEditQues({ open: true, message: `Edit "${question.question}"`, data: question })
     };
+    const handleEditQuestion = async () => {
+        try {
+            const response = await fetch(`http://52.54.249.139:3030/editDisease/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newQuestion)
+            });
 
+            if (response.ok) {
+                setAlert({ show: true, message: "Question added successfully!", type: "success" });
+            } else {
+                setAlert({ show: true, message: "Failed to add questions", type: "error" });
+            }
+        } catch (error) {
+            console.error("Error adding questions:", error);
+            setAlert({ show: true, message: "Error in adding questions", type: "error" });
+        }
+        setDialogQues({ open: false, message: '' });
+        setAnswerComponents([])
+        setNewQuestion(null);
+    }
     const handleInputChange = (e) => {
         setEditedValue(e.target.value);
     };
@@ -158,10 +184,6 @@ const Questions = (props) => {
         setViewOptions(initialWeights)
     };
 
-    // const handleAdd = () => {
-    //     setDialog({ open: true, message: `Add possible answers to "${editedValue}" question`, data: 'addOptions' });
-    // };
-
     const updateWeight = (diseaseId, optionId, newWeight) => {
         setViewOptions(prevWeights => ({
             ...prevWeights,
@@ -172,6 +194,32 @@ const Questions = (props) => {
         setDialogView(null);
         setAnswerComponents({});
     }
+    const handleCancelAddDisease = () => {
+        setDialogDisease({ open: false, message: '' });
+    }
+    const handleAddDisease = async () => {
+        try {
+            const response = await fetch(`http://52.54.249.139:3030/addDisease/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newQuestion)
+            });
+
+            if (response.ok) {
+                setAlert({ show: true, message: "Question added successfully!", type: "success" });
+            } else {
+                setAlert({ show: true, message: "Failed to add questions", type: "error" });
+            }
+        } catch (error) {
+            console.error("Error adding questions:", error);
+            setAlert({ show: true, message: "Error in adding questions", type: "error" });
+        }
+        setDialogQues({ open: false, message: '' });
+        setAnswerComponents([])
+        setNewQuestion(null);
+    }
     const handleCancelAddQues = () => {
         setDialogQues({ open: false, message: '' });
         setNewQuestion(null);
@@ -180,7 +228,7 @@ const Questions = (props) => {
     const handleAddQuestion = async () => {
         console.log({ ...newQuestion, status: 'active' });
         try {
-            const response = await fetch(`http://localhost:3030/addQuestion/`, {
+            const response = await fetch(`http://52.54.249.139:3030/addQuestion/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -208,11 +256,12 @@ const Questions = (props) => {
             "question_id": question.question_id,
             "disease_id": x[0],
             "options_id": x[1],
+            "option_text": question.diseases[x[0]].options.option_text,
             "weightage": viewOptions[`${x[0]}-${x[1]}`]
         }
-        console.log('request body', requestBody)
+        console.log('request body', viewOptions, requestBody)
         try {
-            const response = await fetch(`http://localhost:3030/editOption/`, {
+            const response = await fetch(`http://52.54.249.139:3030/editOption/`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -231,49 +280,6 @@ const Questions = (props) => {
         }
         setDialogView(null); // Close the dialog after saving
     };
-    // const handleOnClickNewAnswer = (e) => {
-    //     e.preventDefault();
-    //     console.log(e, answerComponents)
-    //     setAnswerComponents(prevComponents => [
-    //         ...prevComponents,
-    //         {
-    //             id: newQuesAnswerCount,
-    //             disease_id: e.target.name,
-    //             component: (
-    //                 <div style={{ display: 'flex', alignItems: 'center', marginLeft: '1rem' }} key={newQuesAnswerCount}>
-    //                     <div style={{ textAlign: 'left', width: '50%' }}>
-    //                         <input
-    //                             className="form-control"
-    //                             type="textarea"
-    //                             id={`answer-${newQuesAnswerCount}`}
-    //                             name={newQuesAnswerCount.toString()}
-    //                             onChange={handleNewQuesInput}
-    //                         />
-    //                     </div>
-    //                     <span style={{ margin: '0 1rem' }}>:</span>
-    //                     <div style={{ textAlign: 'left', width: '50%' }}>
-    //                         <input
-    //                             className='answers-input'
-    //                             type="number"
-    //                             id={`answer-${newQuesAnswerCount}-weight`}
-    //                             name={`answer-${newQuesAnswerCount}-weight`}
-    //                             onChange={handleNewQuesInput}
-    //                         />
-    //                     </div>
-    //                     <Button variant="contained" size="medium" sx={{ marginLeft: 3, fontSize: "large" }} onClick={() => handleCancelNewAnswer(newQuesAnswerCount)}>
-    //                         <MdDeleteOutline />
-    //                     </Button>
-    //                 </div>
-    //             )
-    //         }
-    //     ]);
-    // };
-
-    // const handleCancelNewAnswer = (id) => {
-    //     setNewQuesAnswerCount(prevCount => prevCount - 1);
-    //     setAnswerComponents(prevComponents => prevComponents.filter(component => component.id !== id));
-    // };
-
     const handleOnClickNewAnswer = (e, diseaseId) => {
         e.preventDefault();
         const id = Date.now();
@@ -386,7 +392,7 @@ const Questions = (props) => {
                 </a>
             },
         },
-        { field: 'action', headerName: 'Action', flex: 0.3, renderCell: (question) => <a style={{ color: "green", cursor: "pointer" }} onClick={() => handleEdit(question.row)}>Edit</a> },
+        { field: 'action', headerName: 'Action', flex: 0.3, renderCell: (question) => <a style={{ color: "green", cursor: "pointer" }} onClick={() => handleOnClickEditQues(question.row)}>Edit</a> },
         { field: 'delete', headerName: 'Delete', flex: 0.3, renderCell: (question) => <a style={{ color: "red", cursor: "pointer" }} onClick={() => handleDelete(question.row)}>Delete</a> },
     ];
 
@@ -415,7 +421,7 @@ const Questions = (props) => {
                                 <em>All</em>
                             </MenuItem>
                             {/* disease change to disease id */}
-                            {allDiseases.map(disease => <MenuItem key={disease.disease_id} value={disease.disease_name}>{disease.disease_name}</MenuItem>)}
+                            {allDiseases.map(disease => <MenuItem key={disease.disease_id} value={disease.disease_id}>{disease.disease_name}</MenuItem>)}
                         </Select>
                     </FormControl>
                     <span className='question-search'>
@@ -426,29 +432,6 @@ const Questions = (props) => {
                 </div>
                 {dialogView && (
                     <DialogComponent openDialog={dialogView !== null} alertMessage={`Answers for Question "${dialogView.question}" with different diseases`} data={dialogView} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
-                        {/* <div className="popup-content">
-                            {dialogView.diseases.map(disease => (
-                                <div key={disease.disease_id} className='disease-section'>
-                                    <h3>{disease.disease_name} <button name={disease.disease_id} onClick={handleOnClickNewAnswer}>Add Answer</button></h3>
-                                    {disease.options.map(option => (
-                                        <div key={option.options_id} className='question-filters'>
-                                            <label className='full-width' style={{ display: 'flex' }}>
-                                                <div style={{ margin: '1rem', width: '60%' }}>{option.option_text.toUpperCase()} :</div>
-                                                <input
-                                                    className='answers-input'
-                                                    type="number"
-                                                    value={viewOptions[`${disease.disease_id}-${option.options_id}`]}
-                                                    onChange={(e) => updateWeight(disease.disease_id, option.options_id, parseInt(e.target.value))}
-                                                />
-                                            </label>
-                                        </div>
-                                    ))}
-                                    <div>
-                                        {answerComponents.filter(comp => comp.disease_id !== disease.disease_id).map(comp => comp.component)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div> */}
                         <div className="popup-content">
                             {dialogView.diseases.map(disease => (
                                 <div key={disease.disease_id} className='disease-section'>
@@ -487,8 +470,15 @@ const Questions = (props) => {
                             handleOnClickNewAnswer={(e, disease_id) => handleOnClickNewAnswer(e, disease_id)} answerComponents={answerComponents}></NewQuestion>
                     </DialogComponent>
                 )}
+                {dialogEditQues.open && (
+                    <DialogComponent openDialog={dialogEditQues.open} alertMessage={dialogEditQues.message} data={dialogEditQues.data} no={"Cancel"} yes={"Edit"} action={handleEditQuestion} cancel={handleCancelEditQues}>
+                        <EditQuestion allDiseases={allDiseases} newQuestion={newQuestion} handleNewQuesInput={handleNewQuesInput} data={dialogEditQues.data}
+                            viewOptions={viewOptions} updateWeight={updateWeight} handleOnClickNewAnswer={(e, disease_id) => handleOnClickNewAnswer(e, disease_id)}
+                            answerComponents={answerComponents}></EditQuestion>
+                    </DialogComponent>
+                )}
                 {dialogDisease.open && (
-                    <DialogComponent openDialog={dialogDisease} alertMessage={`Add a new diseases`} data={dialogView} no={"Cancel"} yes={"Save"} action={saveWeightChanges} cancel={handleCancelWeights}>
+                    <DialogComponent openDialog={dialogDisease} alertMessage={`Add a new diseases`} data={dialogView} no={"Cancel"} yes={"Save"} action={handleAddDisease} cancel={handleCancelAddDisease}>
                         <div className="popup-content">
                             <form className='profile-form'>
                                 <div style={{ textAlign: "left" }}>
@@ -496,6 +486,7 @@ const Questions = (props) => {
                                     <input type="text" id="diseaseName" name="diseaseName" />
                                 </div>
                             </form>
+                            <h4 style={{ margin: '1rem' }}>*Note : Until questions are added on to this desisease, it will not show up on this page</h4>
                         </div>
                     </DialogComponent>
                 )}

@@ -46,7 +46,7 @@ const UserTable = (props) => {
 
   const getAllAdmins = async () => {
     try {
-      const response = await fetch('http://localhost:3030/getAdmins', {
+      const response = await fetch('http://52.54.249.139:3030/getAdmins', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ const UserTable = (props) => {
 
   const revokeUser = async (username) => {
     try {
-      const response = await fetch(`http://localhost:3030/deleteAdmin/${username}`, {
+      const response = await fetch(`http://52.54.249.139:3030/deleteAdmin/${username}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -91,12 +91,12 @@ const UserTable = (props) => {
 
   const handleAddUser = async () => {
     try {
-      const response = await fetch('http://localhost:3030/addAdmin', {
+      const response = await fetch('http://52.54.249.139:3030/addAdmin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: newUser, updatedBy: props.username }),
+        body: JSON.stringify({ username: newUser, email: newUser, current_username: props.username }),
       });
 
       if (response.ok) {

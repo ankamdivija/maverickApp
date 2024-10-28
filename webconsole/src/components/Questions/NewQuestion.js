@@ -2,7 +2,6 @@ import * as React from 'react';
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 
 const NewQuestion = (props) => {
-
     return <div className="popup-content">
         <form className='profile-form'>
             <div style={{ textAlign: "left" }}>
@@ -48,7 +47,6 @@ const NewQuestion = (props) => {
                 </FormControl>
             </div>
             <div>
-                {/* {props.answerComponents.map(comp => comp.component)} */}
                 {(props.answerComponents[0] || []).map(comp => (
                     <React.Fragment key={comp.id}>
                         {comp.component}

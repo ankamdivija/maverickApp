@@ -21,7 +21,7 @@ const Login = (props, context) => {
       password: password,
     };
     try {
-      const response = await fetch('http://localhost:3030/login', {
+      const response = await fetch('http://52.54.249.139:3030/weblogin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

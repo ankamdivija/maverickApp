@@ -43,7 +43,7 @@ const Profile = (props) => {
             password: "admin456"
         };
         try {
-            const response = await fetch('http://localhost:3030/adminPersonalDetails', {
+            const response = await fetch('http://52.54.249.139:3030/adminPersonalDetails', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ const Profile = (props) => {
             setAlert({ show: true, message: "New and confirm password doesn't match", type: "error" });
         } else {
             try {
-                const response = await fetch('http://localhost:3030/updatePassword', {
+                const response = await fetch('http://52.54.249.139:3030/updatePassword', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
