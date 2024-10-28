@@ -10,10 +10,9 @@ import DialogComponent from '../Utils/Dialog';
 import { Alert } from '@mui/material';
 
 const Profile = (props) => {
-    const { state } = useLocation();
-
-    const [userInfo, setUserInfo] = useState(state.userInfo);
+    const [userInfo, setUserInfo] = useState(props.userInfo);
     const [dialog, setDialog] = useState({ open: false, message: '' });
+    const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
     const [alert, setAlert] = useState({ show: false, message: '', type: '' });
     const handleChangeInFirstName = async (e) => {
         setUserInfo({ ...userInfo, first_name: e.target.value })
@@ -44,7 +43,7 @@ const Profile = (props) => {
             password: "admin456"
         };
         try {
-            const response = await fetch('http://localhost:3030/adminPersonalDetails', {
+            const response = await fetch('http://52.54.249.139:3030/adminPersonalDetails', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,34 +63,57 @@ const Profile = (props) => {
             setAlert({ show: true, message: 'An error occurred. Please try again.', type: "error" });
         }
     };
-    const handlePasswordUpdate = async (e) => {
-        e.preventDefault();
-        const data = new FormData(e.target);
+    const handleChangeInCurrentPassword = async (e) => {
+        setPassword({ ...password, currentPassword: e.target.value })
+    }
+    const handleChangeInNewPassword = async (e) => {
+        setPassword({ ...password, newPassword: e.target.value })
+    }
+    const handleChangeInConfirmPassword = async (e) => {
+        setPassword({ ...password, confirmPassword: e.target.value })
+    }
+    const handlePasswordUpdate = async (data) => {
+        console.log(data)
         const requestBody = {
-            currentPassword: data.get('currentPassword'),
-            newPassword: data.get('newPassword'),
-            confirmPassword: data.get('confirmPassword'),
+            old_password: password.currentPassword,
+            new_password: password.newPassword,
+            confirm_password: password.confirmPassword,
+            admin_id: userInfo.admin_id
         };
-        try {
-            const response = await fetch('/update_passowrd', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody),
-            });
-
-            if (response.ok) {
-                setAlert({ show: true, message: "Password updated successfully!", type: "success" });
-            } else {
-                const data = await response.json();
-                setAlert({ show: true, message: data.message || 'Invalid details provided', type: "success" });
-            }
-        } catch (error) {
-            console.error('Error during update:', error);
-            setAlert({ show: true, message: "An error occurred. Please try again.", type: "success" });
+        console.log(requestBody)
+        if (requestBody.new_password === '' && requestBody.confirm_password === '') {
+            setDialog({ open: false, message: "" });
+            setAlert({ show: true, message: "Pease provide required details", type: "error" });
         }
-    };
+        else if (requestBody.new_password && requestBody.confirm_password && requestBody.new_password !== requestBody.confirm_password) {
+            setDialog({ open: false, message: "" });
+            setAlert({ show: true, message: "New and confirm password doesn't match", type: "error" });
+        } else {
+            try {
+                const response = await fetch('http://52.54.249.139:3030/updatePassword', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (response.ok) {
+                    setDialog({ open: false, message: "" });
+                    setAlert({ show: true, message: "Password updated successfully!", type: "success" });
+                } else {
+                    const data = await response.json();
+                    setDialog({ open: false, message: "" });
+                    setAlert({ show: true, message: data.message || 'Invalid details provided', type: "error" });
+                }
+            } catch (error) {
+                console.error('Error during update:', error);
+                setDialog({ open: false, message: "" });
+                setAlert({ show: true, message: "An error occurred. Please try again.", type: "error" });
+            }
+        };
+    }
+
 
     const handleCancelDelete = () => {
         setDialog({ open: false, message: "" });
@@ -110,21 +132,21 @@ const Profile = (props) => {
                 {alert.show && <Alert className="profile-form" onClose={() => setAlert({ show: false, message: '' })} variant="outlined" severity={alert.type}>
                     {alert.message}
                 </Alert>}
-                {dialog.open && <DialogComponent openDialog={dialog.open} alertMessage={dialog.message} no={"Cancel"} yes={"Save"} action={handlePasswordUpdate} cancel={handleCancelDelete} >
+                {dialog.open && <DialogComponent openDialog={dialog.open} alertMessage={dialog.message} data={dialog} no={"Cancel"} yes={"Save"} action={handlePasswordUpdate} cancel={handleCancelDelete} >
                     <form className='profile-form-password'>
                         <div>
                             <div className="form-group">
-                                <label htmlFor="currentPassword">Current Password</label>
-                                <input type="password" id="currentPassword" name="password" />
+                                <label htmlFor="currentPassword">Current Password <span style={{ color: 'red' }}>*</span></label>
+                                <input type="password" id="currentPassword" name="password" onChange={handleChangeInCurrentPassword} />
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label htmlFor="newPassword">Password</label>
-                                    <input type="password" id="newPassword" name="password" />
+                                    <label htmlFor="newPassword">New Password <span style={{ color: 'red' }}>*</span></label>
+                                    <input type="password" id="newPassword" name="password" onChange={handleChangeInNewPassword} />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="confirmPassword">Confirm Password</label>
-                                    <input type="password" id="confirmPassword" name="confirmPassword" />
+                                    <label htmlFor="confirmPassword">Confirm Password <span style={{ color: 'red' }}>*</span></label>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" onChange={handleChangeInConfirmPassword} />
                                 </div>
                             </div>
                         </div>

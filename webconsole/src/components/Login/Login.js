@@ -10,20 +10,18 @@ const Login = (props, context) => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage('');
     const loginData = {
       username: username,
       password: password,
     };
     try {
-      const response = await fetch('http://localhost:3030/login', {
+      const response = await fetch('http://52.54.249.139:3030/weblogin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,8 +31,8 @@ const Login = (props, context) => {
 
       if (response.ok) {
         const data = await response.json();
-        props.updateUserInfo(data.user);
-        // navigate('dashboard/profile', { state: { userInfo: data.user } });
+        props.updateUserInfo(data.admin);
+        navigate('dashboard/profile', { state: { userInfo: data.admin } });
       } else {
         const data = await response.json();
         setErrorMessage(data.message || 'Invalid username or password');

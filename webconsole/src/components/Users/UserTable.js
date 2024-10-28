@@ -22,8 +22,7 @@ const UserTable = (props) => {
       headerName: 'Action',
       flex: 0.3,
       renderCell: (user) => {
-        console.log(user)
-        return <button className="revoke-btn" onClick={() => setDialogDelete({ open: true, message: `Are sure you want to revoke access to ${user.row.username}?`, data: user.row.username })}>Revoke</button>;
+        return <button className="revoke-btn" disabled={user.row.username === props.username} onClick={() => setDialogDelete({ open: true, message: `Are sure you want to revoke access to ${user.row.username}?`, data: user.row.username })}>Revoke</button>;
       }
     },
   ];
@@ -33,6 +32,7 @@ const UserTable = (props) => {
   const [dialog, setDialog] = useState({ open: false, message: '' });
   const [dialogDelete, setDialogDelete] = useState({ open: false, message: '' });
   const [existingUsers, setExistingUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [newUser, setNewUser] = useState("")
 
   const rows = existingUsers.map(user => {
@@ -46,7 +46,7 @@ const UserTable = (props) => {
 
   const getAllAdmins = async () => {
     try {
-      const response = await fetch('http://localhost:3030/getAdmins', {
+      const response = await fetch('http://52.54.249.139:3030/getAdmins', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -56,6 +56,7 @@ const UserTable = (props) => {
       if (response.ok) {
         const admins = await response.json();
         setExistingUsers(admins);
+        setAllUsers(admins)
       } else {
         alert("Failed to get all admin user");
       }
@@ -67,7 +68,7 @@ const UserTable = (props) => {
 
   const revokeUser = async (username) => {
     try {
-      const response = await fetch(`http://localhost:3030/deleteAdmin/${username}`, {
+      const response = await fetch(`http://52.54.249.139:3030/deleteAdmin/${username}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -76,6 +77,7 @@ const UserTable = (props) => {
 
       if (response.ok) {
         setExistingUsers(existingUsers.filter(user => user.username !== username)); // Remove the revoked user from state
+        setAllUsers(existingUsers)
         setNewUser("")
         alert("User revoked successfully");
       } else {
@@ -89,24 +91,27 @@ const UserTable = (props) => {
 
   const handleAddUser = async () => {
     try {
-      const response = await fetch('http://localhost:3030/addAdmin', {
+      const response = await fetch('http://52.54.249.139:3030/addAdmin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: newUser, updatedBy: props.username }),
+        body: JSON.stringify({ username: newUser, email: newUser, current_username: props.username }),
       });
 
       if (response.ok) {
         const addedUser = await response.json();
         setExistingUsers([...existingUsers, addedUser.admin]); // Add the new user to the state
+        setAllUsers(existingUsers)
         alert("User added successfully");
       } else {
         alert("Failed to add user");
       }
+      handleCancelUser();
     } catch (error) {
       console.error("Error adding user:", error);
       alert("Error adding user");
+      handleCancelUser();
     }
   };
 
@@ -114,13 +119,20 @@ const UserTable = (props) => {
     setDialog({ open: false, message: "" });
   };
 
+  const handleSearch = (e) => {
+    console.log(allUsers)
+    const updatedUsers = allUsers.filter(user =>
+      (user.first_name && user.first_name.includes(e.target.value)) || (user.last_name && user.last_name.includes(e.target.value)) || user.username.includes(e.target.value));
+    setExistingUsers(updatedUsers);
+  }
+
   return (
     <div className="user-table">
       <div className='user-section'>
         <h3>Existing Admin Users</h3>
         <div className='user-bar-content'>
           <button className="menu-btn" onClick={() => setDialog({ open: true, message: `Add User` })}>Add User</button>
-          <SearchBar />
+          <SearchBar onChange={handleSearch} />
         </div>
         {dialog.open && <DialogComponent openDialog={dialog.open} alertMessage={dialog.message} no={"Cancel"} yes={"Add"} action={handleAddUser} cancel={handleCancelUser} >
           <form className='user-form' >

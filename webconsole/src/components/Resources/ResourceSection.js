@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ResourceItem from './ResourceItem';
-import { Typography, Button, Box, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Typography, Button, Box, Accordion, AccordionSummary, AccordionDetails, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import "./Resources.css"
@@ -9,10 +9,12 @@ import DialogComponent from '../Utils/Dialog';
 const ResourceSection = (props) => {
     const [allResources, setAllResources] = useState([]);
     const [popupVisible, setPopupVisible] = useState(false);
-    const [newResource, setNewResource] = useState({})
+    const [newResource, setNewResource] = useState({});
+    const [allDiseases, setAllDiseases] = useState({});
 
     useEffect(() => {
         getAllResources();
+        getAllDiseases();
     }, []);
 
     const togglePopup = () => {
@@ -43,10 +45,27 @@ const ResourceSection = (props) => {
             items
         }));
     };
+    const getAllDiseases = async () => {
+        try {
+            const response = await fetch('http://52.54.249.139:3030/getAllDiseases', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
 
+            if (response.ok) {
+                const data = await response.json();;
+                console.log(data.diseases)
+                setAllDiseases(data.diseases);
+            }
+        } catch (error) {
+            console.log(error)
+        }
+    };
     const getAllResources = async () => {
         try {
-            const response = await fetch('http://localhost:3030/fetchResources', {
+            const response = await fetch('http://52.54.249.139:3030/fetchResources', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,12 +85,12 @@ const ResourceSection = (props) => {
     const handleAddResource = async (resourceItem) => {
         console.log(resourceItem, 'parent')
         try {
-            const response = await fetch('http://localhost:3030/addResource', {
+            const response = await fetch('http://52.54.249.139:3030/addResource', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(newResource),
+                body: JSON.stringify({ ...newResource, status: 'active' }),
             });
 
             if (response.ok) {
@@ -87,12 +106,13 @@ const ResourceSection = (props) => {
             console.error("Error adding resource:", error);
             alert("Error adding resource");
         }
+        setPopupVisible(false);
     };
     const handleEditResource = async (resourceEditItem) => {
         console.log(resourceEditItem, 'parent')
         try {
-            const response = await fetch('http://localhost:3030/editResource', {
-                method: 'POST',
+            const response = await fetch('http://52.54.249.139:3030/editResource', {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -117,7 +137,7 @@ const ResourceSection = (props) => {
     const handleDeleteResource = async (deleteResource) => {
         console.log(deleteResource)
         try {
-            const response = await fetch(`http://localhost:3030/deleteResource/${deleteResource.resource_id}`, {
+            const response = await fetch(`http://52.54.249.139:3030/deleteResource/${deleteResource.resource_id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -166,15 +186,30 @@ const ResourceSection = (props) => {
                         <form className='profile-form'>
                             <div style={{ textAlign: "left" }}>
                                 <label htmlFor="resourceName">Resource Name</label>
-                                <input className="form-control" type="text" id="resourceName" name="resourceName" onChange={(e) => setNewResource({ ...newResource, resource_title: e.target.value })} />
+                                <input className="form-control" type="text" id="resourceName" name="resourceName" onChange={(e) => setNewResource({ ...newResource, resources_title: e.target.value })} />
                             </div>
                             <div style={{ textAlign: "left" }}>
-                                <label htmlFor="lastName">Disease Name</label>
-                                <input type="text" id="diseaseName" name="diseaseName" onChange={(e) => setNewResource({ ...newResource, disease_name: e.target.value })} />
+                                <FormControl variant="standard" sx={{ m: 0, minWidth: 120 }}>
+                                    <InputLabel id="demo-simple-select-standard-label">Disease</InputLabel>
+                                    <Select
+                                        labelId="demo-simple-select-standard-label"
+                                        id="demo-simple-select-standard"
+                                        onChange={(e) => setNewResource({ ...newResource, disease_name: e.target.value })}
+                                        label="Age"
+                                    >
+                                        <MenuItem key="all" value="ALL">
+                                            <em>All</em>
+                                        </MenuItem>
+                                        {/* disease change to disease id */}
+                                        {allDiseases.map(disease => <MenuItem key={disease.disease_id} value={disease.disease_name}>{disease.disease_name}</MenuItem>)}
+                                    </Select>
+                                </FormControl>
+                                {/* <label htmlFor="lastName">Disease Name</label>
+                                <input type="text" id="diseaseName" name="diseaseName" onChange={(e) => setNewResource({ ...newResource, disease_name: e.target.value })} /> */}
                             </div>
                             <div style={{ textAlign: "left" }}>
                                 <label htmlFor="username">Description</label>
-                                <input type="textarea" id="descrition" name="description" onChange={(e) => setNewResource({ ...newResource, resource_desc: e.target.value })} />
+                                <input type="textarea" id="descrition" name="description" onChange={(e) => setNewResource({ ...newResource, resources_desc: e.target.value })} />
                             </div>
                             <div style={{ textAlign: "left" }}>
                                 <label htmlFor="phone">Resource Link</label>
